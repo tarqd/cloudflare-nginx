@@ -53,12 +53,14 @@ awk '{ print $1,"1;" }' $IPv6 > geo-ipv6.conf
 
 log "Generating realip includes"
 
-for x in realip-ipv{4,6}.conf ; do
+for x in realip-ipv{4,6}.conf allow-ipv{4,6}.conf; do
   echo -e "$MODELINE\n" > $x
 done
 
 awk '{ print "set_real_ip_from",$1 ";" }' $IPv4 >> realip-ipv4.conf
 awk '{ print "set_real_ip_from",$1 ";" }' $IPv6 >> realip-ipv6.conf
+awk '{ print "allow",$1 ";" }' $IPv4 >> allow-ipv4.conf
+awk '{ print "allow",$1 ";" }' $IPv6 >> allow-ipv6.conf
 
 mkdir -p /tmp/nginx-pkg/{cloudflare.d,cloudflare-ips}
 mv ./*.conf /tmp/nginx-pkg/cloudflare.d

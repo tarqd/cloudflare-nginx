@@ -21,6 +21,21 @@ You'll also have access to the `cloudflare` log format, which will log `$cloudfl
 
 Include this in your server or location block to block any connections from non-cloudflare IPs. Does not work if you're using the realip module. 
 
+```
+if ( $is_cloudflare_ip = 0 ) {
+  return 403;
+}
+```
+
+## cloudflare.d/cloudflare-allow.conf
+
+Include this allow connections from cloudflare IPs using the access module. 
+
+```
+# it will contain a line like this for each cloudflare range
+allow cloudflareip/range;
+```
+
 ## cloudflare.d/realip.conf
 
 Uses the realip module to set `$remote_addr` if we're behind cloudflare.
@@ -61,3 +76,10 @@ server {
   proxy_pass https://backend;
 }
 ```
+
+# Why not just use realip?
+
+Sometimes you don't want to just replace the `remote_addr` wholesale in Nginx depending on your setup. A quick example would be if you want to whitelist your internal VPN and cloudflare in a location block.
+If you're using `allow/deny` to allow direct access to the backend via the VPN, you can't use realip because your end users coming from cloudflare will be blocked because the access module is now using the cloudflare IP, not the real `$remote_addr` for applying your ACLs.
+
+With this script you can keep your old ACLs and just add cloudflares IPs to the list and use the helper variables to ensure your backends/logs always see the right IP. 
