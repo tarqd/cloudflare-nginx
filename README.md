@@ -9,7 +9,6 @@ Defines a few helper variables:
 - `$is_cloudflare_ip`: Returns 1 if the current `$remote_addr` is a cloudflare IP
 - `$cloudflare_connecting_ip`: Returns the users real IP if we're behind Cloudflare, otherwise blank
 - `$cloudflare_remote_addr`: Returns `$cloudflare_connecting_ip` if we're behind cloudflare, otherwise returns `$remote_addr`
-- `$cloudflare_add_x_forwarded_for`: If we're behind cloudflare it returns `<CF-Connecting-IP>, <CloudFlare-IP>, <Original-X-Forwarded-For>`, otherwise it returns `$proxy_add_xforwarded_for`
 - `$cloudflare_scheme`, Returns `X-Forwarded-For-Proto` if we're behind cloudflare, otherwise `$scheme`
 - `$cloudflare_country`, Returns `CF-IPCountry` if we're behind cloudflare, otherwise blank
 
@@ -46,7 +45,6 @@ Sets up proxy parameters to safely pass the users real ip when we're behind clou
 
 ```
 proxy_set_header X-Real-IP $cloudflare_remote_addr;
-proxy_set_header X-Forwarded-For $cloudflare_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $cloudflare_scheme;
 proxy_set_header X-Geo-Country $cloudflare_country;
 ```
@@ -66,7 +64,7 @@ geo $can_access_admin {
     include cloudflare.d/geo-proxy.conf; # support cloudflare as a frontend proxy
     proxy  192.168.255.0/24; # Also support Linode Nodebalancers (https://www.linode.com/docs/platform/nodebalancer/nodebalancer-reference-guide/#ip-address-range)
     2600:3c03:e000:0146::/64 1; # our infrastructure, monitoring, maybe it uses an admin api
-  	10.0.0.0/8 1; # VPN, for example if developers use their hosts file to hit the backend directly without the frontned proxy for testing
+    10.0.0.0/8 1; # VPN, for example if developers use their hosts file to hit the backend directly without the frontned proxy for testing
 }
 ```
 
@@ -108,7 +106,20 @@ server {
   # remote_addr is now CF-Connecting-IP
   proxy_pass https://backend;
 }
+
 ```
+# Updating the IPs
+
+If you have docker, all you need to do is:
+
+```
+VERSION=1.0.0 scripts/release.sh
+```
+
+This will build the packages in a container and copy out the generated files into the appropriate folders. Just make sure you are in the repo directory when you run it.
+You can subscribe to when the ranges need updating via this [RSS Feed](https://zapier.com/engine/rss/3897533/cloudflare-ip-changes/)
+
+
 
 # Why not just use realip?
 
