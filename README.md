@@ -51,6 +51,27 @@ proxy_set_header X-Forwarded-Proto $cloudflare_scheme;
 proxy_set_header X-Geo-Country $cloudflare_country;
 ```
 
+## cloudflare.d/geo-proxy.conf
+
+Contains a line like this for each cloudflare range:
+```
+proxy cloudflareip/range;
+```
+
+You can use in your own geo blocks if you want to make them support Cloudflare. For example:
+
+```
+# return 1 if this client can access the admin area
+geo $can_access_admin {
+    include cloudflare.d/geo-proxy.conf; # support cloudflare as a frontend proxy
+    proxy  192.168.255.0/24; # Also support Linode Nodebalancers (https://www.linode.com/docs/platform/nodebalancer/nodebalancer-reference-guide/#ip-address-range)
+    2600:3c03:e000:0146::/64 1; # our infrastructure, monitoring, maybe it uses an admin api
+  	10.0.0.0/8 1; # VPN, for example if developers use their hosts file to hit the backend directly without the frontned proxy for testing
+}
+```
+
+With the proxy lines in place, our rules will work whether we hit the backend directly or go through a frontend proxy like Cloudflare.
+
 ## Installation
 
 You can either copy `cloudflare.d` into your nginx directory or use the deb/rpm packages to install these configs.
@@ -66,20 +87,31 @@ You can then use the helpers in server/location blocks like so:
 ```
 server {
   server_name behindcloudflare.com;
-  include cloudflare.d/restrict.conf;
+  # block non-cloudflare ips
+  include cloudflare.d/cloudflare-restrict.conf;
+  # pass cloudflare headers/ip to upstream
   include cloudflare.d/cloudflare-proxy.conf;
   access_log /var/log/nginx/behindcloudflare_access.log cloudflare;
+
   # block US visitors
   if ( $cloudflare_country = "US" ) {
     return 403;
   }
+
+  proxy_pass https://backend;
+}
+
+# using realip
+server {
+  server_name realip.behindcloudflare.com;
+  include cloudflare.d/realip.conf;
+  # remote_addr is now CF-Connecting-IP
   proxy_pass https://backend;
 }
 ```
 
 # Why not just use realip?
 
-Sometimes you don't want to just replace the `remote_addr` wholesale in Nginx depending on your setup. A quick example would be if you want to whitelist your internal VPN and cloudflare in a location block.
-If you're using `allow/deny` to allow direct access to the backend via the VPN, you can't use realip because your end users coming from cloudflare will be blocked because the access module is now using the cloudflare IP, not the real `$remote_addr` for applying your ACLs.
+Sometimes you don't want to just replace the `remote_addr` wholesale in Nginx depending on your setup.
 
-With this script you can keep your old ACLs and just add cloudflares IPs to the list and use the helper variables to ensure your backends/logs always see the right IP. 
+One quick example is if you want to use the access module to block all non-cloudflare connections to stop the backend from being reached directly. If you're using `realip`, your allow/deny rules are now targetting the Cloudflares user IP instead of the IP of Cloudflares frontend. 

@@ -44,12 +44,16 @@ download_ips_if_not_cached v4 && download_ips_if_not_cached v6 || die "failed to
 cat $IPv4 $IPv6 | validate_ips || die "Cloudflare returned invalid ips"
 
 wc -l $IPv4 $IPv6
+
 MODELINE="# vim: set ft=nginx ts=2 sw=2 sts=2 et :"
 
 log "Generating geo includes"
 
 awk '{ print $1,"1;" }' $IPv4 > geo-ipv4.conf
 awk '{ print $1,"1;" }' $IPv6 > geo-ipv6.conf
+awk '{ print "proxy", $1,";" }' $IPv4 > geo-proxy-ipv4.conf
+awk '{ print "proxy", $1,";" }' $IPv6 > geo-proxy-ipv6.conf
+cat geo-proxy-ipv4.conf geo-proxy-ipv6.conf > geo-proxy.conf
 
 log "Generating realip includes"
 
@@ -68,7 +72,10 @@ mv $IPv4 /tmp/nginx-pkg/cloudflare-ips/ipv4
 mv $IPv6 /tmp/nginx-pkg/cloudflare-ips/ipv6
 VERSION=${VERSION:-1.0.0}
 cd /tmp/nginx-pkg
+log "Creatig packages for version $VERSION"
 fpm -t deb -s dir -d nginx -a all -m "Christopher Tarquini <code@tarq.io>"  -n cloudflare-nginx --vendor tarq.io --url https://github.com/ilsken/cloudflare-nginx --description "Helpful Nginx configuration for Cloudflare" --license MIT --directories /etc/nginx/cloudflare.d --directories /usr/share/cloudflare-ips -v $VERSION cloudflare.d=/etc/nginx/ cloudflare-ips=/usr/share
 fpm -t rpm -s dir -d nginx -a all -m "Christopher Tarquini <code@tarq.io>"  -n cloudflare-nginx --vendor tarq.io --url https://github.com/ilsken/cloudflare-nginx --description "Helpful Nginx configuration for Cloudflare" --license MIT --directories /etc/nginx/cloudflare.d --directories /usr/share/cloudflare-ips -v $VERSION cloudflare.d=/etc/nginx/ cloudflare-ips=/usr/share
+
+log "All Done!"
 
 
