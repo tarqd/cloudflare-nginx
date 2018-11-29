@@ -9,7 +9,7 @@ Defines a few helper variables:
 - `$is_cloudflare_ip`: Returns 1 if the current `$remote_addr` is a cloudflare IP
 - `$cloudflare_connecting_ip`: Returns the users real IP if we're behind Cloudflare, otherwise blank
 - `$cloudflare_remote_addr`: Returns `$cloudflare_connecting_ip` if we're behind cloudflare, otherwise returns `$remote_addr`
-- `$cloudflare_add_x_forwarded_for`: If we're behind cloudflare it returns `<CF-Connecting-IP>, <CloudFlare-IP>, <Original-X-Forwarded-For>, otherwise it returns `$proxy_add_xforwarded_for`
+- `$cloudflare_add_x_forwarded_for`: If we're behind cloudflare it returns `<CF-Connecting-IP>, <CloudFlare-IP>, <Original-X-Forwarded-For>`, otherwise it returns `$proxy_add_xforwarded_for`
 - `$cloudflare_scheme`, Returns `X-Forwarded-For-Proto` if we're behind cloudflare, otherwise `$scheme`
 - `$cloudflare_country`, Returns `CF-IPCountry` if we're behind cloudflare, otherwise blank
 
@@ -53,6 +53,7 @@ server {
   server_name behindcloudflare.com;
   include cloudflare.d/restrict.conf;
   include cloudflare.d/cloudflare-proxy.conf;
+  access_log /var/log/nginx/behindcloudflare_access.log cloudflare;
   # block US visitors
   if ( $cloudflare_country = "US" ) {
     return 403;

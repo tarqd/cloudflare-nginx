@@ -1,1 +1,3 @@
 release/*
+.DS_STORE
+*.swp
